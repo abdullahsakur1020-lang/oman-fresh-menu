@@ -1,0 +1,2092 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oman Fresh Menu • عمان فريش منيو</title>
+  <!-- Tailwind CSS for clean, mobile-first responsive layout -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter (English) & Cairo (Arabic) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', 'Cairo', sans-serif;
+    }
+    html[dir="rtl"] body {
+      font-family: 'Cairo', 'Inter', sans-serif;
+    }
+    /* Hide scrollbar on horizontal category tabs */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-stone-50 text-slate-800 min-h-screen antialiased selection:bg-emerald-200 selection:text-emerald-950">
+  <div id="app" class="min-h-screen flex flex-col"></div>
+
+  <script>
+    // =========================================================================
+    // CONFIGURATION & OMAN MARKET CONSTANTS
+    // =========================================================================
+    const BRAND_EN = "Oman Fresh Menu";
+    const BRAND_AR = "عمان فريش منيو";
+    const TRANSFER_NUMBER = "98731318";
+    const WHATSAPP_NUMBER = "96898731318";
+    const COD_SURCHARGE = 0.200; // +0.200 OMR surcharge for Cash on Delivery
+    const DELIVERY_STANDARD_OMR = 0.800; // Standard zone delivery fee
+    const DELIVERY_EXTENDED_OMR = 1.000; // Extended area up to 15 km
+    const STORAGE_KEY = "oman_fresh_menu_organized_v1";
+    const ADMIN_PASSWORD = "9033";
+
+    // Standardized Menu Categories
+    const CATEGORIES = [
+      { id: "all", labelEn: "All", labelAr: "الكل" },
+      { id: "grills", labelEn: "Grills & Mains", labelAr: "مشويات وأطباق رئيسية" },
+      { id: "rice", labelEn: "Rice & Biryani", labelAr: "أرز وبرياني" },
+      { id: "snacks", labelEn: "Snacks & Sides", labelAr: "مقبلات وخفائف" },
+      { id: "drinks", labelEn: "Drinks & Desserts", labelAr: "مشروبات وحلويات" }
+    ];
+
+    // Curated Default Menu Items with 3-decimal OMR pricing
+    const DEFAULT_MENU_ITEMS = [
+      {
+        id: "shuwa-platter",
+        category: "grills",
+        nameEn: "Omani Lamb Shuwa Platter",
+        nameAr: "طبق شواء لحم عماني",
+        descEn: "Slow-roasted spiced Omani lamb served with saffron rice, dates, and fresh salad.",
+        descAr: "لحم غنم عماني متبل ومطهو ببطء مع أرز بالزعفران وتمر وسلطة طازجة.",
+        emoji: "🍖",
+        imageUrl: "",
+        priceOmr: 3.400
+      },
+      {
+        id: "mishkak-combo",
+        category: "grills",
+        nameEn: "Charcoal Beef Mishkak (6 Skewers)",
+        nameAr: "مشكاك لحم مشوي على الفحم (٦ أسياخ)",
+        descEn: "Tender tamarind-spiced beef skewers grilled over charcoal with warm Omani bread.",
+        descAr: "أسياخ لحم متبلة بالتمر الهندي ومشوية على الفحم مع خبز عماني دافئ.",
+        emoji: "🍢",
+        imageUrl: "",
+        priceOmr: 1.800
+      },
+      {
+        id: "grilled-hammour",
+        category: "grills",
+        nameEn: "Coastal Grilled Hammour",
+        nameAr: "سمك هامور مشوي على الطريقة العمانية",
+        descEn: "Fresh Gulf hammour fillet marinated with coastal herbs, garlic, and lemon butter.",
+        descAr: "فيليه هامور طازج متبل بالأعشاب الساحلية والثوم وصلصة الليمون والزبدة.",
+        emoji: "🐟",
+        imageUrl: "",
+        priceOmr: 2.900
+      },
+      {
+        id: "chicken-machboos",
+        category: "rice",
+        nameEn: "Spiced Chicken Machboos",
+        nameAr: "مجبوس دجاج عماني",
+        descEn: "Fragrant basmati rice cooked with marinated chicken, dried Omani lime, and roasted nuts.",
+        descAr: "أرز بسمتي فاخر مطهو مع دجاج متبل ولومي عماني ومكسرات محمصة.",
+        emoji: "🍛",
+        imageUrl: "",
+        priceOmr: 2.200
+      },
+      {
+        id: "mutton-biryani",
+        category: "rice",
+        nameEn: "Royal Saffron Mutton Biryani",
+        nameAr: "برياني لحم بالزعفران",
+        descEn: "Layered aromatic basmati rice with tender spiced mutton, caramelized onions, and raita.",
+        descAr: "طبقات أرز بسمتي عطري مع قطع لحم طرية وبصل مقرمش وسلطة روب.",
+        emoji: "🍲",
+        imageUrl: "",
+        priceOmr: 2.800
+      },
+      {
+        id: "fatayer-box",
+        category: "snacks",
+        nameEn: "Assorted Fresh Fatayer Box",
+        nameAr: "بوكس فطائر طازجة مشكلة",
+        descEn: "Oven-baked warm pastries filled with za'atar, akkawi cheese, and spiced minced meat.",
+        descAr: "معجنات مخبوزة طازجة محشوة بالزعتر وجبن العكاوي واللحم المتبل.",
+        emoji: "🥟",
+        imageUrl: "",
+        priceOmr: 1.400
+      },
+      {
+        id: "hummus-mutabbal",
+        category: "snacks",
+        nameEn: "Creamy Hummus & Fresh Bread",
+        nameAr: "حمص كريمي مع خبز طازج",
+        descEn: "Smooth chickpea dip drizzled with extra-virgin olive oil and warm flatbread.",
+        descAr: "حمص ناعم بزيت الزيتون البكر مع خبز عربي طازج ومخللات.",
+        emoji: "🥗",
+        imageUrl: "",
+        priceOmr: 1.100
+      },
+      {
+        id: "karak-halwa",
+        category: "drinks",
+        nameEn: "Omani Halwa & Karak Tea Set",
+        nameAr: "حلوى عمانية مع شاي كرك",
+        descEn: "Authentic warm saffron Omani halwa paired with two cups of cardamom karak tea.",
+        descAr: "حلوى عمانية أصيلة بالزعفران مع كوبين من شاي الكرك بالهيل.",
+        emoji: "🫖",
+        imageUrl: "",
+        priceOmr: 1.200
+      },
+      {
+        id: "lemon-mint",
+        category: "drinks",
+        nameEn: "Fresh Lemon & Mint Juice",
+        nameAr: "عصير ليمون بالنعناع طازج",
+        descEn: "Chilled freshly squeezed lemon blended with garden mint leaves.",
+        descAr: "ليمون طازج معصور ومخفوق مع أوراق النعناع المنعشة.",
+        emoji: "🧃",
+        imageUrl: "",
+        priceOmr: 0.900
+      }
+    ];
+
+    // =========================================================================
+    // BILINGUAL DICTIONARY (ENGLISH & ARABIC)
+    // =========================================================================
+    const I18N = {
+      en: {
+        brandTitle: BRAND_EN,
+        brandSubtitle: "Freshly prepared Omani meals delivered to your door",
+        welcomeBadge: "Muscat & Oman Local Delivery",
+        welcomeHeading: "Welcome to Oman Fresh Menu",
+        welcomeSubheading: "Choose your preferred language to browse fresh daily dishes, share your location effortlessly, and order in OMR.",
+        chooseEnglish: "Continue in English",
+        chooseArabic: "المتابعة باللغة العربية",
+        headerSwitchLabel: "عربي",
+        prepBadge: "40–45 min fresh prep & delivery",
+        radiusBadge: "10–15 km delivery radius",
+        searchPlaceholder: "Search dishes by name or description...",
+        clearSearch: "Clear",
+        noDishesFound: "No dishes match your search or category filter.",
+        resetFiltersBtn: "Show All Dishes",
+        availableBadge: "Available",
+        unavailableBadge: "Unavailable",
+        addBtn: "+ Add",
+        unavailableBtn: "Unavailable",
+        inCartLabel: "In Cart",
+        orderSummaryTitle: "Your Order & Checkout",
+        emptyCartTitle: "Your cart is empty",
+        emptyCartText: "Tap '+ Add' on any available dish to start your order.",
+        itemsSubtotal: "Items Subtotal",
+        deliveryFeeTitle: "Delivery Zone",
+        deliveryStandardLabel: "Standard Area",
+        deliveryExtendedLabel: "Extended Area (up to 15 km)",
+        paymentMethodTitle: "Payment Method",
+        paymentTransferTitle: "Mobile Transfer",
+        paymentTransferDesc: `Transfer exact total to ${TRANSFER_NUMBER}`,
+        paymentCodTitle: "Cash on Delivery",
+        paymentCodDesc: `Includes +${COD_SURCHARGE.toFixed(3)} OMR cash fee`,
+        codSurchargeLabel: "Cash on Delivery Fee",
+        grandTotalLabel: "Grand Total",
+        locationSectionTitle: "Delivery Location",
+        locationAutoNote: "Location opens automatically when ordering so our driver can reach you smoothly.",
+        detectGpsBtn: "Detect GPS Location",
+        refreshGpsBtn: "Refresh GPS",
+        capturingGps: "Detecting GPS coordinates...",
+        gpsCapturedStatus: "GPS Location Ready",
+        gpsFallbackStatus: "GPS unavailable — enter your area & building below",
+        manualLocationLabel: "Area / Landmark / Building",
+        manualLocationPlaceholder: "e.g. Seeb, Al Khoudh, Street 14, Villa 22",
+        viewOnMapLabel: "Open GPS Pin in Google Maps",
+        customerNameLabel: "Customer Name",
+        customerNamePlaceholder: "Enter your full name",
+        customerPhoneLabel: "Phone Number (Oman)",
+        customerPhonePlaceholder: "e.g. 9XXXXXXX",
+        placeOrderBtn: "Confirm Order on WhatsApp",
+        validationError: "Please add at least one item, enter your name and phone number, and provide a delivery location (GPS or manual).",
+        // Order Confirmation & WhatsApp
+        orderConfirmedBadge: "WhatsApp Confirmation Opened",
+        orderConfirmedTitle: "Order Confirmation Summary",
+        orderConfirmedSubtitle: "WhatsApp has been opened with your complete order details. Tap Send in WhatsApp to confirm your order with the store.",
+        orderRefLabel: "Order Ref",
+        sendWhatsappBtn: "Open WhatsApp Again to Confirm",
+        whatsappGuideline: "If WhatsApp did not open automatically, tap 'Open WhatsApp Again to Confirm' above and press 'Send' inside WhatsApp to complete your order confirmation.",
+        placeAnotherOrderBtn: "Place Another Order",
+        // Store / Admin Controls (Password strictly hidden everywhere)
+        adminBtnLabel: "Admin",
+        lockExitAdminBtn: "Lock & Exit Admin",
+        adminModalTitle: "Store Admin Access",
+        adminModalDesc: "Enter your password to manage menu items and availability.",
+        adminPasswordLabel: "Password",
+        adminPasswordPlaceholder: "Enter password",
+        adminUnlockBtn: "Unlock",
+        adminCancelBtn: "Cancel",
+        adminWrongPassword: "Incorrect password. Please try again.",
+        adminPanelTitle: "Store / Admin Controls",
+        adminPanelSubtitle: "Manage item availability, delete dishes, or add new items. Changes save automatically.",
+        turnAllOnBtn: "Turn All Items On",
+        turnAllOffBtn: "Turn All Items Off",
+        manageItemsTitle: "Manage Menu Items",
+        statusOn: "ON",
+        statusOff: "OFF",
+        deleteBtn: "Delete",
+        addDishTitle: "Add New Dish",
+        dishNameEnLabel: "English Name *",
+        dishNameEnPlaceholder: "e.g. Omani Grilled Prawns",
+        dishNameArLabel: "Arabic Name *",
+        dishNameArPlaceholder: "مثال: روبيان عماني مشوي",
+        dishCategoryLabel: "Category",
+        dishPriceLabel: "Price (OMR) *",
+        dishPricePlaceholder: "e.g. 2.500",
+        dishDescEnLabel: "English Description (Optional)",
+        dishDescEnPlaceholder: "Short description in English",
+        dishDescArLabel: "Arabic Description (Optional)",
+        dishDescArPlaceholder: "وصف مختصر بالعربية",
+        dishPhotoUploadLabel: "Upload Photo (Optional)",
+        dishPhotoUrlLabel: "Or Image URL (Optional)",
+        dishPhotoUrlPlaceholder: "https://...",
+        dishEmojiLabel: "Fallback Emoji",
+        addDishSubmitBtn: "Add Dish to Menu",
+        addDishValidationError: "Please enter English Name, Arabic Name, and a valid OMR price.",
+        // WhatsApp Message Format Labels
+        waHeader: "New Order — Oman Fresh Menu (عمان فريش منيو)",
+        waOrderRef: "Order Ref",
+        waCustomer: "Customer",
+        waPhone: "Phone",
+        waLocation: "Delivery Location",
+        waMapLink: "Google Maps Pin",
+        waItems: "Ordered Items",
+        waSubtotal: "Subtotal",
+        waDelivery: "Delivery Fee",
+        waCodFee: "Cash on Delivery Fee",
+        waTotal: "Grand Total",
+        waPayment: "Payment Method",
+        waDeliveryNote: "Service Note: 40–45 min fresh prep & delivery (10–15 km radius)"
+      },
+      ar: {
+        brandTitle: BRAND_AR,
+        brandSubtitle: "وجبات عمانية طازجة تُحضّر عند الطلب وتصلك إلى باب منزلك",
+        welcomeBadge: "توصيل محلي في مسقط وعُمان",
+        welcomeHeading: "مرحباً بكم في عمان فريش منيو",
+        welcomeSubheading: "اختر لغتك المفضلة لتصفح الأطباق الطازجة يومياً، وتحديد موقع التوصيل بسهولة، والطلب بالريال العماني.",
+        chooseEnglish: "Continue in English",
+        chooseArabic: "المتابعة باللغة العربية",
+        headerSwitchLabel: "EN",
+        prepBadge: "٤٠–٤٥ دقيقة تحضير وتوصيل طازج",
+        radiusBadge: "نطاق التوصيل ١٠–١٥ كم",
+        searchPlaceholder: "ابحث عن طبق بالاسم أو الوصف...",
+        clearSearch: "مسح",
+        noDishesFound: "لا توجد أطباق مطابقة للبحث أو القسم المحدد.",
+        resetFiltersBtn: "عرض جميع الأطباق",
+        availableBadge: "متوفر",
+        unavailableBadge: "غير متوفر",
+        addBtn: "+ إضافة",
+        unavailableBtn: "غير متوفر",
+        inCartLabel: "في السلة",
+        orderSummaryTitle: "سلة الطلب والدفع",
+        emptyCartTitle: "سلة الطلب فارغة",
+        emptyCartText: "اضغط على '+ إضافة' لأي طبق متوفر للبدء بطلبك.",
+        itemsSubtotal: "مجموع الأصناف",
+        deliveryFeeTitle: "منطقة التوصيل",
+        deliveryStandardLabel: "نطاق قريب",
+        deliveryExtendedLabel: "نطاق ممتد (حتى ١٥ كم)",
+        paymentMethodTitle: "طريقة الدفع",
+        paymentTransferTitle: "تحويل هاتف (Mobile Transfer)",
+        paymentTransferDesc: `تحويل المبلغ إلى ${TRANSFER_NUMBER}`,
+        paymentCodTitle: "الدفع عند الاستلام",
+        paymentCodDesc: `يشمل رسوم تحصيل نقدي +${COD_SURCHARGE.toFixed(3)} ر.ع`,
+        codSurchargeLabel: "رسوم الدفع عند الاستلام",
+        grandTotalLabel: "الإجمالي الكلي",
+        locationSectionTitle: "موقع التوصيل",
+        locationAutoNote: "يفتح قسم الموقع تلقائياً عند الطلب ليسهل على السائق الوصول إليك بسرعة.",
+        detectGpsBtn: "تحديد موقعي عبر GPS",
+        refreshGpsBtn: "تحديث GPS",
+        capturingGps: "جاري تحديد إحداثيات GPS...",
+        gpsCapturedStatus: "تم التقاط موقع GPS بنجاح",
+        gpsFallbackStatus: "تعذر GPS — اكتب المنطقة والمعلم أو رقم المبنى أدناه",
+        manualLocationLabel: "المنطقة / المعلم / رقم المبنى",
+        manualLocationPlaceholder: "مثال: السيب، الخوض، شارع ١٤، فيلا ٢٢",
+        viewOnMapLabel: "فتح الموقع في خرائط جوجل",
+        customerNameLabel: "اسم العميل",
+        customerNamePlaceholder: "أدخل اسمك الكامل",
+        customerPhoneLabel: "رقم الهاتف (عُمان)",
+        customerPhonePlaceholder: "مثال: 9XXXXXXX",
+        placeOrderBtn: "تأكيد الطلب عبر واتساب",
+        validationError: "يرجى إضافة صنف واحد على الأقل، وإدخال الاسم ورقم الهاتف، وتحديد موقع التوصيل (GPS أو يدوياً).",
+        // Order Confirmation & WhatsApp
+        orderConfirmedBadge: "تم فتح تأكيد واتساب",
+        orderConfirmedTitle: "ملخص تأكيد الطلب",
+        orderConfirmedSubtitle: "تم فتح تطبيق واتساب وفيه تفاصيل طلبك بالكامل. اضغط على زر الإرسال داخل واتساب لتأكيد طلبك مع المتجر.",
+        orderRefLabel: "رقم الطلب",
+        sendWhatsappBtn: "فتح واتساب مرة أخرى للتأكيد",
+        whatsappGuideline: "إذا لم يفتح تطبيق واتساب تلقائياً، اضغط على زر 'فتح واتساب مرة أخرى للتأكيد' أعلاه ثم اضغط 'إرسال / Send' داخل واتساب لإتمام تأكيد الطلب.",
+        placeAnotherOrderBtn: "إجراء طلب جديد",
+        // Store / Admin Controls (Password strictly hidden everywhere)
+        adminBtnLabel: "الإدارة",
+        lockExitAdminBtn: "قفل والخروج من الإدارة",
+        adminModalTitle: "دخول إدارة المتجر",
+        adminModalDesc: "أدخل كلمة المرور لإدارة أصناف القائمة وتوفرها.",
+        adminPasswordLabel: "كلمة المرور",
+        adminPasswordPlaceholder: "أدخل كلمة المرور",
+        adminUnlockBtn: "دخول",
+        adminCancelBtn: "إلغاء",
+        adminWrongPassword: "كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى.",
+        adminPanelTitle: "لوحة تحكم المتجر والإدارة",
+        adminPanelSubtitle: "التحكم في توفر الأصناف، حذف الأطباق، أو إضافة أطباق جديدة. يتم الحفظ تلقائياً.",
+        turnAllOnBtn: "تفعيل جميع الأصناف",
+        turnAllOffBtn: "إيقاف جميع الأصناف",
+        manageItemsTitle: "إدارة أصناف القائمة",
+        statusOn: "متوفر",
+        statusOff: "موقوف",
+        deleteBtn: "حذف",
+        addDishTitle: "إضافة طبق جديد",
+        dishNameEnLabel: "الاسم بالإنجليزية *",
+        dishNameEnPlaceholder: "مثال: Omani Grilled Prawns",
+        dishNameArLabel: "الاسم بالعربية *",
+        dishNameArPlaceholder: "مثال: روبيان عماني مشوي",
+        dishCategoryLabel: "القسم",
+        dishPriceLabel: "السعر (ريال عماني) *",
+        dishPricePlaceholder: "مثال: 2.500",
+        dishDescEnLabel: "الوصف بالإنجليزية (اختياري)",
+        dishDescEnPlaceholder: "وصف مختصر بالإنجليزية",
+        dishDescArLabel: "الوصف بالعربية (اختياري)",
+        dishDescArPlaceholder: "وصف مختصر بالعربية",
+        dishPhotoUploadLabel: "رفع صورة (اختياري)",
+        dishPhotoUrlLabel: "أو رابط صورة (اختياري)",
+        dishPhotoUrlPlaceholder: "https://...",
+        dishEmojiLabel: "أيقونة بديلة",
+        addDishSubmitBtn: "إضافة الطبق إلى القائمة",
+        addDishValidationError: "يرجى إدخال الاسم بالإنجليزية والعربية وسعر صحيح بالريال العماني.",
+        // WhatsApp Message Format Labels
+        waHeader: "طلب جديد — Oman Fresh Menu (عمان فريش منيو)",
+        waOrderRef: "رقم الطلب",
+        waCustomer: "العميل",
+        waPhone: "الهاتف",
+        waLocation: "موقع التوصيل",
+        waMapLink: "رابط خرائط جوجل",
+        waItems: "الأصناف المطلوبة",
+        waSubtotal: "المجموع الفرعي",
+        waDelivery: "رسوم التوصيل",
+        waCodFee: "رسوم الدفع عند الاستلام",
+        waTotal: "الإجمالي الكلي",
+        waPayment: "طريقة الدفع",
+        waDeliveryNote: "ملاحظة الخدمة: ٤٠–٤٥ دقيقة تحضير وتوصيل طازج (نطاق ١٠–١٥ كم)"
+      }
+    };
+
+    const EMOJI_CHOICES = ["🍽️", "🍖", "🍛", "🍢", "🐟", "🍲", "🥟", "🥗", "🫖", "🧃", "🍗", "🌯"];
+
+    // =========================================================================
+    // PERSISTENCE & APPLICATION STATE
+    // =========================================================================
+    function cloneDefaultMenu() {
+      return DEFAULT_MENU_ITEMS.map((item) => ({ ...item }));
+    }
+
+    function loadPersistedState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return {
+            lang: null,
+            menuItems: cloneDefaultMenu(),
+            unavailableItems: {},
+            manualLocation: "",
+            gpsCoords: null
+          };
+        }
+        const parsed = JSON.parse(raw);
+        const menuItems =
+          Array.isArray(parsed.menuItems) && parsed.menuItems.length > 0
+            ? parsed.menuItems.map((item) => ({
+                id: String(item.id),
+                category: CATEGORIES.some((c) => c.id === item.category && c.id !== "all")
+                  ? item.category
+                  : "grills",
+                nameEn: String(item.nameEn || ""),
+                nameAr: String(item.nameAr || ""),
+                descEn: String(item.descEn || ""),
+                descAr: String(item.descAr || ""),
+                emoji: String(item.emoji || "🍽️"),
+                imageUrl: String(item.imageUrl || ""),
+                priceOmr: Number(item.priceOmr) > 0 ? Number(item.priceOmr) : 1.000
+              }))
+            : cloneDefaultMenu();
+
+        return {
+          lang: parsed.lang === "en" || parsed.lang === "ar" ? parsed.lang : null,
+          menuItems,
+          unavailableItems:
+            parsed.unavailableItems && typeof parsed.unavailableItems === "object"
+              ? parsed.unavailableItems
+              : {},
+          manualLocation: typeof parsed.manualLocation === "string" ? parsed.manualLocation : "",
+          gpsCoords:
+            parsed.gpsCoords &&
+            typeof parsed.gpsCoords.lat === "number" &&
+            typeof parsed.gpsCoords.lng === "number"
+              ? parsed.gpsCoords
+              : null
+        };
+      } catch (err) {
+        return {
+          lang: null,
+          menuItems: cloneDefaultMenu(),
+          unavailableItems: {},
+          manualLocation: "",
+          gpsCoords: null
+        };
+      }
+    }
+
+    const saved = loadPersistedState();
+
+    const state = {
+      // Show entry language selection banner/modal if no language saved yet
+      showEntryModal: !saved.lang,
+      lang: saved.lang || "en",
+      // Browse & filter state
+      selectedCategory: "all",
+      searchQuery: "",
+      // Menu & availability state
+      menuItems: saved.menuItems,
+      unavailableItems: saved.unavailableItems,
+      // Admin password-protected state
+      isAdminUnlocked: false,
+      isAdminModalOpen: false,
+      adminPasswordInput: "",
+      adminPasswordError: "",
+      // Add new dish draft
+      newDish: {
+        nameEn: "",
+        nameAr: "",
+        category: "grills",
+        priceOmr: "",
+        descEn: "",
+        descAr: "",
+        imageUrl: "",
+        uploadedDataUrl: "",
+        emoji: "🍽️",
+        error: ""
+      },
+      // Cart & checkout state
+      cart: {},
+      deliveryFee: DELIVERY_STANDARD_OMR,
+      paymentMethod: "transfer",
+      customerName: "",
+      customerPhone: "",
+      formError: "",
+      // Location capture state
+      isLocationOpen: Boolean(saved.manualLocation || saved.gpsCoords),
+      manualLocation: saved.manualLocation,
+      gpsCoords: saved.gpsCoords,
+      gpsState: saved.gpsCoords ? "success" : "idle", // "idle" | "loading" | "success" | "fallback"
+      autoGpsAttempted: false,
+      // Confirmed order summary
+      confirmedOrder: null
+    };
+
+    function savePersistedState() {
+      try {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            lang: state.lang,
+            menuItems: state.menuItems,
+            unavailableItems: state.unavailableItems,
+            manualLocation: state.manualLocation,
+            gpsCoords: state.gpsCoords
+          })
+        );
+      } catch (err) {
+        // Ignore storage quota issues
+      }
+    }
+
+    function t(key) {
+      return I18N[state.lang][key] || key;
+    }
+
+    function formatOmr(amount) {
+      const unit = state.lang === "ar" ? "ر.ع" : "OMR";
+      return `${Number(amount || 0).toFixed(3)} ${unit}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function applyDocumentDirection() {
+      const htmlEl = document.documentElement;
+      htmlEl.lang = state.lang;
+      htmlEl.dir = state.lang === "ar" ? "rtl" : "ltr";
+    }
+
+    // =========================================================================
+    // LANGUAGE & BROWSE ACTIONS
+    // =========================================================================
+    function selectInitialLanguage(lang) {
+      state.lang = lang;
+      state.showEntryModal = false;
+      savePersistedState();
+      render();
+    }
+
+    function toggleLanguage() {
+      state.lang = state.lang === "en" ? "ar" : "en";
+      state.showEntryModal = false;
+      savePersistedState();
+      render();
+    }
+
+    function selectCategory(categoryId) {
+      state.selectedCategory = categoryId;
+      render();
+    }
+
+    function updateSearchQuery(query) {
+      state.searchQuery = query;
+      render();
+      const input = document.getElementById("menuSearchInput");
+      if (input) {
+        input.focus();
+        const len = input.value.length;
+        input.setSelectionRange(len, len);
+      }
+    }
+
+    function resetFilters() {
+      state.selectedCategory = "all";
+      state.searchQuery = "";
+      render();
+    }
+
+    // =========================================================================
+    // AUTOMATIC & MANUAL LOCATION CAPTURE
+    // =========================================================================
+    function detectGpsLocation(isAutomatic) {
+      if (!navigator.geolocation) {
+        state.gpsState = "fallback";
+        render();
+        return;
+      }
+
+      if (state.gpsState === "loading") return;
+
+      state.gpsState = "loading";
+      if (!isAutomatic) {
+        render();
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          state.gpsCoords = {
+            lat: Number(pos.coords.latitude.toFixed(6)),
+            lng: Number(pos.coords.longitude.toFixed(6))
+          };
+          state.gpsState = "success";
+          savePersistedState();
+          render();
+        },
+        () => {
+          state.gpsState = "fallback";
+          render();
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        }
+      );
+    }
+
+    function autoOpenAndDetectLocation() {
+      state.isLocationOpen = true;
+      if (!state.gpsCoords && !state.autoGpsAttempted) {
+        state.autoGpsAttempted = true;
+        detectGpsLocation(true);
+      }
+    }
+
+    function handleManualLocationInput(val) {
+      state.manualLocation = val;
+      state.formError = "";
+      savePersistedState();
+    }
+
+    function getGoogleMapsPinUrl() {
+      if (!state.gpsCoords) return "";
+      return `https://maps.google.com/?q=${state.gpsCoords.lat},${state.gpsCoords.lng}`;
+    }
+
+    function getCombinedLocationString() {
+      const parts = [];
+      if (state.manualLocation.trim()) {
+        parts.push(state.manualLocation.trim());
+      }
+      if (state.gpsCoords) {
+        parts.push(`GPS: ${state.gpsCoords.lat}, ${state.gpsCoords.lng}`);
+      }
+      return parts.join(" | ");
+    }
+
+    // =========================================================================
+    // CART, CHECKOUT & WHATSAPP ORDER FORMATTING
+    // =========================================================================
+    function addToCart(dishId) {
+      if (state.unavailableItems[dishId]) return;
+      state.confirmedOrder = null;
+      state.formError = "";
+      state.cart[dishId] = (state.cart[dishId] || 0) + 1;
+      autoOpenAndDetectLocation();
+      render();
+    }
+
+    function updateCartQty(dishId, delta) {
+      if (state.unavailableItems[dishId] && delta > 0) return;
+      const next = (state.cart[dishId] || 0) + delta;
+      if (next <= 0) {
+        delete state.cart[dishId];
+      } else {
+        state.cart[dishId] = next;
+        autoOpenAndDetectLocation();
+      }
+      state.formError = "";
+      render();
+    }
+
+    function setDeliveryFee(fee) {
+      state.deliveryFee = Number(fee);
+      render();
+    }
+
+    function setPaymentMethod(method) {
+      state.paymentMethod = method;
+      render();
+    }
+
+    function calculateOrderTotals() {
+      const items = [];
+      let subtotal = 0;
+
+      for (const dish of state.menuItems) {
+        const qty = state.cart[dish.id] || 0;
+        if (qty > 0 && !state.unavailableItems[dish.id]) {
+          const lineTotal = dish.priceOmr * qty;
+          subtotal += lineTotal;
+          items.push({ dish, qty, lineTotal });
+        }
+      }
+
+      const hasItems = items.length > 0;
+      const delivery = hasItems ? state.deliveryFee : 0;
+      const codSurcharge = hasItems && state.paymentMethod === "cod" ? COD_SURCHARGE : 0;
+      const total = subtotal + delivery + codSurcharge;
+
+      return { items, hasItems, subtotal, delivery, codSurcharge, total };
+    }
+
+    function buildWhatsAppOrderUrl(order) {
+      const isAr = state.lang === "ar";
+      const lines = [
+        `*${t("waHeader")}*`,
+        `${t("waOrderRef")}: #${order.ref}`,
+        `${t("waCustomer")}: ${order.customerName}`,
+        `${t("waPhone")}: ${order.customerPhone}`,
+        `${t("waLocation")}: ${order.locationText}`
+      ];
+
+      if (order.mapUrl) {
+        lines.push(`${t("waMapLink")}: ${order.mapUrl}`);
+      }
+
+      lines.push("", `*${t("waItems")}:*`);
+      order.items.forEach((entry) => {
+        const title = isAr
+          ? `${entry.dish.nameAr} (${entry.dish.nameEn})`
+          : `${entry.dish.nameEn} (${entry.dish.nameAr})`;
+        lines.push(`• ${title} x${entry.qty} = ${entry.lineTotal.toFixed(3)} OMR`);
+      });
+
+      lines.push(
+        "",
+        `${t("waSubtotal")}: ${order.subtotal.toFixed(3)} OMR`,
+        `${t("waDelivery")}: ${order.delivery.toFixed(3)} OMR`
+      );
+
+      if (order.codSurcharge > 0) {
+        lines.push(`${t("waCodFee")}: +${order.codSurcharge.toFixed(3)} OMR`);
+      }
+
+      const paymentLabel =
+        order.paymentMethod === "transfer"
+          ? `${t("paymentTransferTitle")} (${TRANSFER_NUMBER})`
+          : t("paymentCodTitle");
+
+      lines.push(
+        `*${t("waTotal")}: ${order.total.toFixed(3)} OMR*`,
+        `${t("waPayment")}: ${paymentLabel}`,
+        `${t("waDeliveryNote")}`
+      );
+
+      return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(lines.join("\n"))}`;
+    }
+
+    function placeOrder(event) {
+      event.preventDefault();
+      autoOpenAndDetectLocation();
+
+      const nameEl = document.getElementById("customerNameInput");
+      const phoneEl = document.getElementById("customerPhoneInput");
+      const locEl = document.getElementById("manualLocationInput");
+
+      if (nameEl) state.customerName = nameEl.value.trim();
+      if (phoneEl) state.customerPhone = phoneEl.value.trim();
+      if (locEl) {
+        state.manualLocation = locEl.value.trim();
+        savePersistedState();
+      }
+
+      const locationText = getCombinedLocationString();
+      const { items, hasItems, subtotal, delivery, codSurcharge, total } = calculateOrderTotals();
+
+      if (!hasItems || !state.customerName || !state.customerPhone || !locationText) {
+        state.formError = t("validationError");
+        render();
+        return;
+      }
+
+      const ref = `OFM-${Math.floor(1000 + Math.random() * 9000)}`;
+      const confirmed = {
+        ref,
+        customerName: state.customerName,
+        customerPhone: state.customerPhone,
+        locationText,
+        mapUrl: getGoogleMapsPinUrl(),
+        items,
+        subtotal,
+        delivery,
+        codSurcharge,
+        total,
+        paymentMethod: state.paymentMethod
+      };
+
+      const whatsappUrl = buildWhatsAppOrderUrl(confirmed);
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+
+      state.confirmedOrder = confirmed;
+      state.cart = {};
+      state.formError = "";
+      render();
+    }
+
+    function startAnotherOrder() {
+      state.confirmedOrder = null;
+      state.formError = "";
+      render();
+    }
+
+    // =========================================================================
+    // PASSWORD-PROTECTED STORE / ADMIN CONTROLS
+    // =========================================================================
+    function openAdminModal() {
+      state.isAdminModalOpen = true;
+      state.adminPasswordInput = "";
+      state.adminPasswordError = "";
+      render();
+      setTimeout(() => {
+        const field = document.getElementById("adminPasswordInput");
+        if (field) field.focus();
+      }, 30);
+    }
+
+    function closeAdminModal() {
+      state.isAdminModalOpen = false;
+      state.adminPasswordInput = "";
+      state.adminPasswordError = "";
+      render();
+    }
+
+    function submitAdminLogin(event) {
+      event.preventDefault();
+      const field = document.getElementById("adminPasswordInput");
+      const value = field ? field.value.trim() : state.adminPasswordInput.trim();
+
+      if (value === ADMIN_PASSWORD) {
+        state.isAdminUnlocked = true;
+        state.isAdminModalOpen = false;
+        state.adminPasswordInput = "";
+        state.adminPasswordError = "";
+        render();
+      } else {
+        state.adminPasswordError = t("adminWrongPassword");
+        render();
+        setTimeout(() => {
+          const retry = document.getElementById("adminPasswordInput");
+          if (retry) retry.focus();
+        }, 30);
+      }
+    }
+
+    function lockAndExitAdmin() {
+      state.isAdminUnlocked = false;
+      state.isAdminModalOpen = false;
+      state.adminPasswordInput = "";
+      state.adminPasswordError = "";
+      render();
+    }
+
+    function toggleItemAvailability(dishId) {
+      if (!state.isAdminUnlocked) return;
+      if (state.unavailableItems[dishId]) {
+        delete state.unavailableItems[dishId];
+      } else {
+        state.unavailableItems[dishId] = true;
+        delete state.cart[dishId];
+      }
+      savePersistedState();
+      render();
+    }
+
+    function turnAllItemsOn() {
+      if (!state.isAdminUnlocked) return;
+      state.unavailableItems = {};
+      savePersistedState();
+      render();
+    }
+
+    function turnAllItemsOff() {
+      if (!state.isAdminUnlocked) return;
+      for (const dish of state.menuItems) {
+        state.unavailableItems[dish.id] = true;
+      }
+      state.cart = {};
+      savePersistedState();
+      render();
+    }
+
+    function deleteMenuItem(dishId) {
+      if (!state.isAdminUnlocked) return;
+      state.menuItems = state.menuItems.filter((item) => item.id !== dishId);
+      delete state.unavailableItems[dishId];
+      delete state.cart[dishId];
+      savePersistedState();
+      render();
+    }
+
+    function handleNewDishPhotoFile(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        state.newDish.uploadedDataUrl = String(reader.result || "");
+        state.newDish.error = "";
+        render();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function addNewDish(event) {
+      event.preventDefault();
+      if (!state.isAdminUnlocked) return;
+
+      const nameEnEl = document.getElementById("newDishNameEn");
+      const nameArEl = document.getElementById("newDishNameAr");
+      const categoryEl = document.getElementById("newDishCategory");
+      const priceEl = document.getElementById("newDishPrice");
+      const descEnEl = document.getElementById("newDishDescEn");
+      const descArEl = document.getElementById("newDishDescAr");
+      const urlEl = document.getElementById("newDishImageUrl");
+
+      const nameEn = (nameEnEl ? nameEnEl.value : state.newDish.nameEn).trim();
+      const nameAr = (nameArEl ? nameArEl.value : state.newDish.nameAr).trim();
+      const category = categoryEl ? categoryEl.value : state.newDish.category;
+      const rawPrice = parseFloat(priceEl ? priceEl.value : state.newDish.priceOmr);
+      const descEn = (descEnEl ? descEnEl.value : state.newDish.descEn).trim();
+      const descAr = (descArEl ? descArEl.value : state.newDish.descAr).trim();
+      const imageUrl = (
+        state.newDish.uploadedDataUrl ||
+        (urlEl ? urlEl.value : state.newDish.imageUrl)
+      ).trim();
+
+      if (!nameEn || !nameAr || Number.isNaN(rawPrice) || rawPrice <= 0) {
+        state.newDish.error = t("addDishValidationError");
+        render();
+        return;
+      }
+
+      state.menuItems.unshift({
+        id: `dish-${Date.now()}`,
+        category,
+        nameEn,
+        nameAr,
+        descEn: descEn || "Freshly prepared daily in our kitchen.",
+        descAr: descAr || "يُحضّر طازجاً يومياً في مطبخنا.",
+        emoji: state.newDish.emoji || "🍽️",
+        imageUrl,
+        priceOmr: Number(rawPrice.toFixed(3))
+      });
+
+      state.newDish = {
+        nameEn: "",
+        nameAr: "",
+        category: "grills",
+        priceOmr: "",
+        descEn: "",
+        descAr: "",
+        imageUrl: "",
+        uploadedDataUrl: "",
+        emoji: "🍽️",
+        error: ""
+      };
+
+      savePersistedState();
+      render();
+    }
+
+    // =========================================================================
+    // RENDERING COMPONENTS
+    // =========================================================================
+    function renderEntryLanguageModal() {
+      if (!state.showEntryModal) return "";
+
+      return `
+        <div class="fixed inset-0 z-50 bg-emerald-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div class="max-w-md w-full bg-white rounded-3xl p-7 sm:p-8 shadow-2xl border border-amber-200 text-center space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-100 text-amber-950 text-xs font-bold">
+              <span>🇴🇲</span>
+              <span>${I18N.en.welcomeBadge} • ${I18N.ar.welcomeBadge}</span>
+            </div>
+
+            <div class="space-y-1.5">
+              <h2 class="text-2xl sm:text-3xl font-extrabold text-emerald-950 tracking-tight">
+                ${BRAND_EN}
+              </h2>
+              <p class="text-xl font-bold text-amber-700">
+                ${BRAND_AR}
+              </p>
+            </div>
+
+            <div class="space-y-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <p>${I18N.en.welcomeSubheading}</p>
+              <p class="text-slate-700 font-medium">${I18N.ar.welcomeSubheading}</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                onclick="selectInitialLanguage('en')"
+                class="w-full py-3.5 px-4 rounded-2xl bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-sm shadow-md transition"
+              >
+                ${I18N.en.chooseEnglish}
+              </button>
+              <button
+                type="button"
+                onclick="selectInitialLanguage('ar')"
+                class="w-full py-3.5 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-extrabold text-sm shadow-md transition"
+              >
+                ${I18N.ar.chooseArabic}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHeader() {
+      return `
+        <header class="bg-white/95 backdrop-blur-md border-b border-stone-200 sticky top-0 z-20">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <!-- Brand Title & Subtitle -->
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-11 h-11 rounded-2xl bg-emerald-900 text-amber-300 flex items-center justify-center text-xl font-extrabold shrink-0 shadow-xs">
+                🇴🇲
+              </div>
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-baseline gap-x-2">
+                  <h1 class="text-lg sm:text-xl font-extrabold text-emerald-950 truncate">
+                    ${BRAND_EN}
+                  </h1>
+                  <span class="text-sm sm:text-base font-bold text-amber-700">
+                    ${BRAND_AR}
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 truncate">
+                  ${t("brandSubtitle")}
+                </p>
+              </div>
+            </div>
+
+            <!-- Service Badges & Controls -->
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="hidden xl:flex items-center gap-2 mr-1">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-xs font-semibold">
+                  <span>⏱️</span>
+                  <span>${t("prepBadge")}</span>
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200/80 text-amber-950 text-xs font-semibold">
+                  <span>🛵</span>
+                  <span>${t("radiusBadge")}</span>
+                </span>
+              </div>
+
+              <!-- Compact Language Switcher -->
+              <button
+                type="button"
+                onclick="toggleLanguage()"
+                class="px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs sm:text-sm shadow-xs transition"
+              >
+                ${t("headerSwitchLabel")}
+              </button>
+
+              <!-- Discreet Admin Lock Button -->
+              ${
+                state.isAdminUnlocked
+                  ? `
+                    <button
+                      type="button"
+                      onclick="lockAndExitAdmin()"
+                      class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm transition flex items-center gap-1.5"
+                    >
+                      <span>🔓</span>
+                      <span>${t("lockExitAdminBtn")}</span>
+                    </button>
+                  `
+                  : `
+                    <button
+                      type="button"
+                      onclick="openAdminModal()"
+                      title="${t("adminBtnLabel")}"
+                      class="px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-700 border border-stone-200 font-bold text-xs sm:text-sm transition flex items-center gap-1.5"
+                    >
+                      <span>🔒</span>
+                      <span>${t("adminBtnLabel")}</span>
+                    </button>
+                  `
+              }
+            </div>
+          </div>
+
+          <!-- Compact Mobile/Tablet Service Strip -->
+          <div class="xl:hidden bg-stone-100/80 border-t border-stone-200/70 px-4 py-2">
+            <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-1 text-xs font-semibold text-slate-700">
+              <span class="inline-flex items-center gap-1.5">
+                <span>⏱️</span>
+                <span>${t("prepBadge")}</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span>🛵</span>
+                <span>${t("radiusBadge")}</span>
+              </span>
+            </div>
+          </div>
+        </header>
+      `;
+    }
+
+    function renderFilterAndSearchBar() {
+      const isAr = state.lang === "ar";
+
+      return `
+        <div class="bg-white rounded-3xl border border-stone-200/90 p-4 shadow-xs space-y-3.5">
+          <!-- Search Input -->
+          <div class="relative">
+            <span class="absolute inset-y-0 ${isAr ? "right-3.5" : "left-3.5"} flex items-center text-slate-400 pointer-events-none">
+              🔍
+            </span>
+            <input
+              id="menuSearchInput"
+              type="text"
+              value="${escapeHtml(state.searchQuery)}"
+              oninput="updateSearchQuery(this.value)"
+              placeholder="${escapeHtml(t("searchPlaceholder"))}"
+              class="w-full ${isAr ? "pr-10 pl-20" : "pl-10 pr-20"} py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600 transition"
+            />
+            ${
+              state.searchQuery
+                ? `
+                  <button
+                    type="button"
+                    onclick="updateSearchQuery('')"
+                    class="absolute inset-y-1.5 ${isAr ? "left-2" : "right-2"} px-3 rounded-xl bg-stone-200 hover:bg-stone-300 text-slate-700 text-xs font-bold transition"
+                  >
+                    ${t("clearSearch")}
+                  </button>
+                `
+                : ""
+            }
+          </div>
+
+          <!-- Category Filter Pills -->
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+            ${CATEGORIES.map((cat) => {
+              const active = state.selectedCategory === cat.id;
+              const label = isAr ? cat.labelAr : cat.labelEn;
+              return `
+                <button
+                  type="button"
+                  onclick="selectCategory('${cat.id}')"
+                  class="shrink-0 px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold transition ${
+                    active
+                      ? "bg-emerald-800 text-white shadow-xs"
+                      : "bg-stone-100 hover:bg-amber-50 text-slate-700"
+                  }"
+                >
+                  ${escapeHtml(label)}
+                </button>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function getFilteredMenuItems() {
+      const q = state.searchQuery.trim().toLowerCase();
+      return state.menuItems.filter((dish) => {
+        const matchesCategory =
+          state.selectedCategory === "all" || dish.category === state.selectedCategory;
+        if (!matchesCategory) return false;
+        if (!q) return true;
+
+        const haystack = [dish.nameEn, dish.nameAr, dish.descEn, dish.descAr]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(q);
+      });
+    }
+
+    function renderFoodCard(dish) {
+      const isAr = state.lang === "ar";
+      const primaryTitle = escapeHtml(isAr ? dish.nameAr : dish.nameEn);
+      const secondaryTitle = escapeHtml(isAr ? dish.nameEn : dish.nameAr);
+      const desc = escapeHtml(isAr ? dish.descAr : dish.descEn);
+      const isOff = Boolean(state.unavailableItems[dish.id]);
+      const qtyInCart = state.cart[dish.id] || 0;
+
+      const mediaSection = dish.imageUrl
+        ? `
+          <div class="relative h-44 w-full rounded-2xl overflow-hidden bg-stone-100">
+            <img
+              src="${escapeHtml(dish.imageUrl)}"
+              alt="${primaryTitle}"
+              class="w-full h-full object-cover ${isOff ? "grayscale opacity-55" : ""}"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            />
+            <div style="display:none" class="w-full h-full items-center justify-center text-6xl bg-gradient-to-br from-amber-50 to-emerald-50">
+              ${escapeHtml(dish.emoji)}
+            </div>
+          </div>
+        `
+        : `
+          <div class="h-40 w-full rounded-2xl bg-gradient-to-br from-amber-50 via-stone-100 to-emerald-50/80 flex items-center justify-center text-6xl ${isOff ? "grayscale opacity-55" : ""}">
+            ${escapeHtml(dish.emoji)}
+          </div>
+        `;
+
+      return `
+        <article class="bg-white rounded-3xl border ${
+          isOff ? "border-stone-200 bg-stone-50/70" : "border-stone-200/90 hover:border-emerald-300"
+        } p-4 shadow-xs hover:shadow-md transition flex flex-col justify-between gap-4">
+          <div class="space-y-3">
+            <div class="relative">
+              ${mediaSection}
+              <span class="absolute top-2.5 ${isAr ? "left-2.5" : "right-2.5"} px-3 py-1 rounded-full text-xs font-extrabold shadow-xs ${
+                isOff
+                  ? "bg-rose-100 text-rose-800 border border-rose-200"
+                  : "bg-emerald-100 text-emerald-900 border border-emerald-200"
+              }">
+                ${isOff ? t("unavailableBadge") : t("availableBadge")}
+              </span>
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex items-start justify-between gap-2">
+                <h3 class="font-extrabold text-base text-slate-900 leading-snug">
+                  ${primaryTitle}
+                </h3>
+                <span class="shrink-0 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-900 font-extrabold text-xs sm:text-sm">
+                  ${formatOmr(dish.priceOmr)}
+                </span>
+              </div>
+              <p class="text-xs font-medium text-slate-400">${secondaryTitle}</p>
+              <p class="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1 line-clamp-2">
+                ${desc}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            ${
+              isOff
+                ? `
+                  <button
+                    type="button"
+                    disabled
+                    class="w-full py-2.5 px-4 rounded-2xl bg-stone-200/80 text-slate-500 font-bold text-sm cursor-not-allowed"
+                  >
+                    ${t("unavailableBtn")}
+                  </button>
+                `
+                : qtyInCart > 0
+                ? `
+                  <div class="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-2xl p-1.5">
+                    <button
+                      type="button"
+                      onclick="updateCartQty('${dish.id}', -1)"
+                      class="w-9 h-9 rounded-xl bg-white hover:bg-emerald-100 text-emerald-900 font-extrabold text-lg shadow-xs transition"
+                    >
+                      −
+                    </button>
+                    <span class="text-xs sm:text-sm font-extrabold text-emerald-950">
+                      ${t("inCartLabel")}: ${qtyInCart}
+                    </span>
+                    <button
+                      type="button"
+                      onclick="updateCartQty('${dish.id}', 1)"
+                      class="w-9 h-9 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-lg shadow-xs transition"
+                    >
+                      +
+                    </button>
+                  </div>
+                `
+                : `
+                  <button
+                    type="button"
+                    onclick="addToCart('${dish.id}')"
+                    class="w-full py-2.5 px-4 rounded-2xl bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-sm shadow-xs transition"
+                  >
+                    ${t("addBtn")}
+                  </button>
+                `
+            }
+          </div>
+        </article>
+      `;
+    }
+
+    function renderLocationCaptureSection() {
+      const mapUrl = getGoogleMapsPinUrl();
+
+      let gpsBadgeHtml = "";
+      if (state.gpsState === "loading") {
+        gpsBadgeHtml = `
+          <div class="px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold flex items-center gap-2">
+            <span>📡</span>
+            <span>${t("capturingGps")}</span>
+          </div>
+        `;
+      } else if (state.gpsState === "success" && state.gpsCoords) {
+        gpsBadgeHtml = `
+          <div class="px-3 py-2.5 rounded-xl bg-emerald-100/80 border border-emerald-300 text-emerald-950 text-xs space-y-1">
+            <div class="font-extrabold flex items-center justify-between gap-2">
+              <span>✅ ${t("gpsCapturedStatus")}</span>
+              <span dir="ltr" class="font-mono text-[11px]">${state.gpsCoords.lat}, ${state.gpsCoords.lng}</span>
+            </div>
+            <a
+              href="${mapUrl}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-block underline font-bold text-emerald-900 hover:text-emerald-700"
+            >
+              ${t("viewOnMapLabel")} ↗
+            </a>
+          </div>
+        `;
+      } else if (state.gpsState === "fallback") {
+        gpsBadgeHtml = `
+          <div class="px-3 py-2 rounded-xl bg-amber-100/90 border border-amber-300 text-amber-950 text-xs font-semibold">
+            ⚠️ ${t("gpsFallbackStatus")}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="rounded-2xl bg-amber-50/70 border border-amber-200/90 p-4 space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <h4 class="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
+              <span>📍</span>
+              <span>${t("locationSectionTitle")}</span>
+            </h4>
+            <button
+              type="button"
+              onclick="detectGpsLocation(false)"
+              class="px-3 py-1.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold transition"
+            >
+              ${state.gpsCoords ? t("refreshGpsBtn") : t("detectGpsBtn")}
+            </button>
+          </div>
+
+          <p class="text-xs text-slate-600 leading-relaxed">
+            ${t("locationAutoNote")}
+          </p>
+
+          ${gpsBadgeHtml}
+
+          <div class="space-y-1">
+            <label for="manualLocationInput" class="block text-xs font-bold text-slate-700">
+              ${t("manualLocationLabel")}
+            </label>
+            <input
+              id="manualLocationInput"
+              type="text"
+              value="${escapeHtml(state.manualLocation)}"
+              oninput="handleManualLocationInput(this.value)"
+              placeholder="${escapeHtml(t("manualLocationPlaceholder"))}"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+            />
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCheckoutAndSummaryPanel() {
+      // Order Confirmation View
+      if (state.confirmedOrder) {
+        const order = state.confirmedOrder;
+        const whatsappUrl = buildWhatsAppOrderUrl(order);
+        const isAr = state.lang === "ar";
+
+        return `
+          <div class="bg-white rounded-3xl border-2 border-emerald-600 p-5 sm:p-6 shadow-md space-y-5 sticky top-24">
+            <div class="space-y-1.5">
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-950 text-xs font-extrabold">
+                <span>✅</span>
+                <span>${t("orderConfirmedBadge")} • ${t("orderRefLabel")}: #${escapeHtml(order.ref)}</span>
+              </div>
+              <h2 class="text-xl font-extrabold text-slate-900 pt-1">
+                ${t("orderConfirmedTitle")}
+              </h2>
+              <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                ${t("orderConfirmedSubtitle")}
+              </p>
+            </div>
+
+            <!-- Itemized Summary Card -->
+            <div class="rounded-2xl bg-stone-50 border border-stone-200 p-4 space-y-3 text-xs sm:text-sm">
+              <div class="space-y-1.5">
+                <div class="flex justify-between gap-2">
+                  <span class="text-slate-500">${t("waCustomer")}:</span>
+                  <span class="font-bold text-slate-900">${escapeHtml(order.customerName)}</span>
+                </div>
+                <div class="flex justify-between gap-2">
+                  <span class="text-slate-500">${t("waPhone")}:</span>
+                  <span class="font-bold text-slate-900" dir="ltr">${escapeHtml(order.customerPhone)}</span>
+                </div>
+                <div class="space-y-0.5">
+                  <span class="text-slate-500">${t("waLocation")}:</span>
+                  <p class="font-bold text-slate-900 break-words">${escapeHtml(order.locationText)}</p>
+                  ${
+                    order.mapUrl
+                      ? `<a href="${order.mapUrl}" target="_blank" rel="noopener noreferrer" class="inline-block text-emerald-800 underline font-bold text-xs">${t("viewOnMapLabel")} ↗</a>`
+                      : ""
+                  }
+                </div>
+              </div>
+
+              <div class="border-t border-stone-200 pt-2.5 space-y-1.5">
+                ${order.items
+                  .map(
+                    (entry) => `
+                      <div class="flex justify-between gap-2">
+                        <span>${escapeHtml(isAr ? entry.dish.nameAr : entry.dish.nameEn)} × ${entry.qty}</span>
+                        <span class="font-bold">${formatOmr(entry.lineTotal)}</span>
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+
+              <div class="border-t border-stone-200 pt-2.5 space-y-1">
+                <div class="flex justify-between text-slate-600">
+                  <span>${t("itemsSubtotal")}</span>
+                  <span>${formatOmr(order.subtotal)}</span>
+                </div>
+                <div class="flex justify-between text-slate-600">
+                  <span>${t("waDelivery")}</span>
+                  <span>${formatOmr(order.delivery)}</span>
+                </div>
+                ${
+                  order.codSurcharge > 0
+                    ? `
+                      <div class="flex justify-between text-amber-800">
+                        <span>${t("codSurchargeLabel")}</span>
+                        <span>+${formatOmr(order.codSurcharge)}</span>
+                      </div>
+                    `
+                    : ""
+                }
+                <div class="flex justify-between text-base font-extrabold text-emerald-950 pt-1">
+                  <span>${t("grandTotalLabel")}</span>
+                  <span>${formatOmr(order.total)}</span>
+                </div>
+                <div class="flex justify-between text-xs text-slate-600 pt-1">
+                  <span>${t("waPayment")}:</span>
+                  <span class="font-bold text-slate-900">
+                    ${
+                      order.paymentMethod === "transfer"
+                        ? `${t("paymentTransferTitle")} (${TRANSFER_NUMBER})`
+                        : t("paymentCodTitle")
+                    }
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- WhatsApp Direct Send CTA + Guideline -->
+            <div class="space-y-2.5">
+              <a
+                href="${whatsappUrl}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="w-full py-3.5 px-4 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-extrabold text-sm sm:text-base shadow-md flex items-center justify-center gap-2 transition"
+              >
+                <span>💬</span>
+                <span>${t("sendWhatsappBtn")}</span>
+              </a>
+              <p class="text-xs text-amber-950 bg-amber-50 border border-amber-200 rounded-2xl p-3 leading-relaxed">
+                ${t("whatsappGuideline")}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onclick="startAnotherOrder()"
+              class="w-full py-2.5 px-4 rounded-2xl bg-stone-100 hover:bg-stone-200 text-slate-800 font-bold text-xs sm:text-sm transition"
+            >
+              ${t("placeAnotherOrderBtn")}
+            </button>
+          </div>
+        `;
+      }
+
+      // Active Cart & Checkout Form View
+      const { items, hasItems, subtotal, delivery, codSurcharge, total } = calculateOrderTotals();
+      const totalCount = items.reduce((sum, entry) => sum + entry.qty, 0);
+      const isAr = state.lang === "ar";
+
+      return `
+        <div class="bg-white rounded-3xl border border-stone-200/90 p-5 sm:p-6 shadow-xs space-y-5 sticky top-24">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg sm:text-xl font-extrabold text-slate-900">
+              ${t("orderSummaryTitle")}
+            </h2>
+            <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-950 text-xs font-extrabold">
+              ${totalCount}
+            </span>
+          </div>
+
+          ${
+            !hasItems
+              ? `
+                <div class="rounded-2xl bg-stone-50 border border-dashed border-stone-300 p-6 text-center space-y-1">
+                  <div class="text-3xl">🧺</div>
+                  <p class="font-extrabold text-sm text-slate-800">${t("emptyCartTitle")}</p>
+                  <p class="text-xs text-slate-500">${t("emptyCartText")}</p>
+                </div>
+              `
+              : `
+                <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  ${items
+                    .map(
+                      (entry) => `
+                        <div class="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-stone-50 border border-stone-200/80">
+                          <div class="min-w-0">
+                            <p class="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                              ${escapeHtml(isAr ? entry.dish.nameAr : entry.dish.nameEn)}
+                            </p>
+                            <p class="text-xs text-slate-500">
+                              ${formatOmr(entry.dish.priceOmr)} × ${entry.qty}
+                            </p>
+                          </div>
+                          <div class="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onclick="updateCartQty('${entry.dish.id}', -1)"
+                              class="w-7 h-7 rounded-lg bg-white border border-stone-300 font-bold text-sm hover:bg-stone-100"
+                            >
+                              −
+                            </button>
+                            <span class="w-5 text-center text-xs font-extrabold">${entry.qty}</span>
+                            <button
+                              type="button"
+                              onclick="updateCartQty('${entry.dish.id}', 1)"
+                              class="w-7 h-7 rounded-lg bg-emerald-800 text-white font-bold text-sm hover:bg-emerald-900"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      `
+                    )
+                    .join("")}
+                </div>
+              `
+          }
+
+          <form onsubmit="placeOrder(event)" class="space-y-4">
+            <!-- Delivery Fee Selector: Standard 0.800 OMR vs Extended Area up to 15 km 1.000 OMR -->
+            <div class="space-y-2">
+              <label class="block text-xs font-extrabold text-slate-700">
+                ${t("deliveryFeeTitle")}
+              </label>
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onclick="setDeliveryFee(${DELIVERY_STANDARD_OMR})"
+                  class="p-2.5 rounded-2xl border text-start transition ${
+                    Math.abs(state.deliveryFee - DELIVERY_STANDARD_OMR) < 0.001
+                      ? "bg-emerald-50 border-emerald-700 ring-1 ring-emerald-700"
+                      : "bg-stone-50 border-stone-200 hover:bg-amber-50/60"
+                  }"
+                >
+                  <div class="text-xs font-extrabold text-slate-900">${t("deliveryStandardLabel")}</div>
+                  <div class="text-xs font-bold text-emerald-800 mt-0.5">${formatOmr(DELIVERY_STANDARD_OMR)}</div>
+                </button>
+
+                <button
+                  type="button"
+                  onclick="setDeliveryFee(${DELIVERY_EXTENDED_OMR})"
+                  class="p-2.5 rounded-2xl border text-start transition ${
+                    Math.abs(state.deliveryFee - DELIVERY_EXTENDED_OMR) < 0.001
+                      ? "bg-emerald-50 border-emerald-700 ring-1 ring-emerald-700"
+                      : "bg-stone-50 border-stone-200 hover:bg-amber-50/60"
+                  }"
+                >
+                  <div class="text-xs font-extrabold text-slate-900">${t("deliveryExtendedLabel")}</div>
+                  <div class="text-xs font-bold text-emerald-800 mt-0.5">${formatOmr(DELIVERY_EXTENDED_OMR)}</div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Payment Method Selector: Mobile Transfer (98731318) vs Cash on Delivery (+0.200 OMR) -->
+            <div class="space-y-2">
+              <label class="block text-xs font-extrabold text-slate-700">
+                ${t("paymentMethodTitle")}
+              </label>
+              <div class="space-y-2">
+                <button
+                  type="button"
+                  onclick="setPaymentMethod('transfer')"
+                  class="w-full text-start p-3 rounded-2xl border transition ${
+                    state.paymentMethod === "transfer"
+                      ? "bg-emerald-50 border-emerald-700 ring-1 ring-emerald-700"
+                      : "bg-white border-stone-200 hover:bg-stone-50"
+                  }"
+                >
+                  <div class="font-extrabold text-xs sm:text-sm text-slate-900">
+                    📲 ${t("paymentTransferTitle")}
+                  </div>
+                  <div class="text-xs text-slate-600 mt-0.5">
+                    ${t("paymentTransferDesc")}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onclick="setPaymentMethod('cod')"
+                  class="w-full text-start p-3 rounded-2xl border transition ${
+                    state.paymentMethod === "cod"
+                      ? "bg-amber-50 border-amber-600 ring-1 ring-amber-600"
+                      : "bg-white border-stone-200 hover:bg-stone-50"
+                  }"
+                >
+                  <div class="font-extrabold text-xs sm:text-sm text-slate-900">
+                    💵 ${t("paymentCodTitle")}
+                  </div>
+                  <div class="text-xs text-slate-600 mt-0.5">
+                    ${t("paymentCodDesc")}
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Customer Location Capture (Auto-opens on item add or checkout) -->
+            ${state.isLocationOpen || hasItems ? renderLocationCaptureSection() : ""}
+
+            <!-- Customer Name & Phone Inputs -->
+            <div class="space-y-3">
+              <div class="space-y-1">
+                <label for="customerNameInput" class="block text-xs font-bold text-slate-700">
+                  ${t("customerNameLabel")}
+                </label>
+                <input
+                  id="customerNameInput"
+                  type="text"
+                  value="${escapeHtml(state.customerName)}"
+                  oninput="state.customerName = this.value"
+                  placeholder="${escapeHtml(t("customerNamePlaceholder"))}"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                />
+              </div>
+
+              <div class="space-y-1">
+                <label for="customerPhoneInput" class="block text-xs font-bold text-slate-700">
+                  ${t("customerPhoneLabel")}
+                </label>
+                <input
+                  id="customerPhoneInput"
+                  type="tel"
+                  dir="ltr"
+                  value="${escapeHtml(state.customerPhone)}"
+                  oninput="state.customerPhone = this.value"
+                  placeholder="${escapeHtml(t("customerPhonePlaceholder"))}"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                />
+              </div>
+            </div>
+
+            <!-- Totals Breakdown -->
+            <div class="rounded-2xl bg-stone-50 border border-stone-200 p-3.5 space-y-1.5 text-xs sm:text-sm">
+              <div class="flex justify-between text-slate-600">
+                <span>${t("itemsSubtotal")}</span>
+                <span class="font-semibold">${formatOmr(subtotal)}</span>
+              </div>
+              <div class="flex justify-between text-slate-600">
+                <span>${t("waDelivery")}</span>
+                <span class="font-semibold">${formatOmr(delivery)}</span>
+              </div>
+              ${
+                codSurcharge > 0
+                  ? `
+                    <div class="flex justify-between text-amber-800">
+                      <span>${t("codSurchargeLabel")}</span>
+                      <span class="font-semibold">+${formatOmr(codSurcharge)}</span>
+                    </div>
+                  `
+                  : ""
+              }
+              <div class="flex justify-between text-base font-extrabold text-emerald-950 border-t border-stone-200 pt-2">
+                <span>${t("grandTotalLabel")}</span>
+                <span>${formatOmr(total)}</span>
+              </div>
+            </div>
+
+            ${
+              state.formError
+                ? `
+                  <p class="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
+                    ${escapeHtml(state.formError)}
+                  </p>
+                `
+                : ""
+            }
+
+            <button
+              type="submit"
+              class="w-full py-3.5 px-4 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-extrabold text-sm sm:text-base shadow-md flex items-center justify-center gap-2 transition"
+            >
+              <span>💬</span>
+              <span>${t("placeOrderBtn")}</span>
+            </button>
+          </form>
+        </div>
+      `;
+    }
+
+    function renderAdminControlsSection() {
+      if (!state.isAdminUnlocked) return "";
+
+      const isAr = state.lang === "ar";
+      const previewPhoto = state.newDish.uploadedDataUrl || state.newDish.imageUrl.trim();
+
+      return `
+        <section class="bg-white rounded-3xl border-2 border-amber-400 p-5 sm:p-6 shadow-md space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-4">
+            <div>
+              <h2 class="text-lg sm:text-xl font-extrabold text-slate-900">
+                🛠️ ${t("adminPanelTitle")}
+              </h2>
+              <p class="text-xs sm:text-sm text-slate-600">
+                ${t("adminPanelSubtitle")}
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onclick="turnAllItemsOn()"
+                class="px-3.5 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-950 font-bold text-xs transition"
+              >
+                ${t("turnAllOnBtn")}
+              </button>
+              <button
+                type="button"
+                onclick="turnAllItemsOff()"
+                class="px-3.5 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-950 font-bold text-xs transition"
+              >
+                ${t("turnAllOffBtn")}
+              </button>
+              <button
+                type="button"
+                onclick="lockAndExitAdmin()"
+                class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition"
+              >
+                🔒 ${t("lockExitAdminBtn")}
+              </button>
+            </div>
+          </div>
+
+          <!-- Manage Menu Items List with Toggle Switch & Delete -->
+          <div class="space-y-3">
+            <h3 class="text-sm font-extrabold text-slate-800">
+              ${t("manageItemsTitle")} (${state.menuItems.length})
+            </h3>
+            <div class="space-y-2 max-h-96 overflow-y-auto pr-1">
+              ${state.menuItems
+                .map((dish) => {
+                  const isAvailable = !state.unavailableItems[dish.id];
+                  const title = escapeHtml(isAr ? dish.nameAr : dish.nameEn);
+                  const sub = escapeHtml(isAr ? dish.nameEn : dish.nameAr);
+
+                  return `
+                    <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-stone-50 border border-stone-200">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <span class="text-2xl shrink-0">${escapeHtml(dish.emoji)}</span>
+                        <div class="min-w-0">
+                          <p class="font-bold text-xs sm:text-sm text-slate-900 truncate">${title}</p>
+                          <p class="text-xs text-slate-500 truncate">${sub} • ${formatOmr(dish.priceOmr)}</p>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center gap-2.5 shrink-0">
+                        <!-- Instant ON / OFF Toggle Switch -->
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked="${isAvailable}"
+                          onclick="toggleItemAvailability('${dish.id}')"
+                          class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full border text-xs font-extrabold transition ${
+                            isAvailable
+                              ? "bg-emerald-100 border-emerald-300 text-emerald-950"
+                              : "bg-stone-200 border-stone-300 text-slate-600"
+                          }"
+                        >
+                          <span class="w-7 h-4 rounded-full p-0.5 flex items-center transition ${
+                            isAvailable ? "bg-emerald-600 justify-end" : "bg-slate-400 justify-start"
+                          }">
+                            <span class="w-3 h-3 rounded-full bg-white shadow-xs"></span>
+                          </span>
+                          <span>${isAvailable ? t("statusOn") : t("statusOff")}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onclick="deleteMenuItem('${dish.id}')"
+                          class="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold text-xs transition"
+                        >
+                          ${t("deleteBtn")}
+                        </button>
+                      </div>
+                    </div>
+                  `;
+                })
+                .join("")}
+            </div>
+          </div>
+
+          <!-- Add New Dish Form -->
+          <form onsubmit="addNewDish(event)" class="border-t border-stone-200 pt-5 space-y-4">
+            <h3 class="text-sm font-extrabold text-slate-800">
+              ➕ ${t("addDishTitle")}
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <label for="newDishNameEn" class="block text-xs font-bold text-slate-700">
+                  ${t("dishNameEnLabel")}
+                </label>
+                <input
+                  id="newDishNameEn"
+                  type="text"
+                  value="${escapeHtml(state.newDish.nameEn)}"
+                  oninput="state.newDish.nameEn = this.value"
+                  placeholder="${escapeHtml(t("dishNameEnPlaceholder"))}"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                />
+              </div>
+
+              <div class="space-y-1">
+                <label for="newDishNameAr" class="block text-xs font-bold text-slate-700">
+                  ${t("dishNameArLabel")}
+                </label>
+                <input
+                  id="newDishNameAr"
+                  type="text"
+                  value="${escapeHtml(state.newDish.nameAr)}"
+                  oninput="state.newDish.nameAr = this.value"
+                  placeholder="${escapeHtml(t("dishNameArPlaceholder"))}"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                />
+              </div>
+
+              <div class="space-y-1">
+                <label for="newDishCategory" class="block text-xs font-bold text-slate-700">
+                  ${t("dishCategoryLabel")}
+                </label>
+                <select
+                  id="newDishCategory"
+                  onchange="state.newDish.category = this.value"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-sm"
+                >
+                  ${CATEGORIES.filter((c) => c.id !== "all")
+                    .map(
+                      (c) => `
+                        <option value="${c.id}" ${state.newDish.category === c.id ? "selected" : ""}>
+                          ${escapeHtml(isAr ? c.labelAr : c.labelEn)}
+                        </option>
+                      `
+                    )
+                    .join("")}
+                </select>
+              </div>
+
+              <div class="space-y-1">
+                <label for="newDishPrice" class="block text-xs font-bold text-slate-700">
+                  ${t("dishPriceLabel")}
+                </label>
+                <input
+                  id="newDishPrice"
+                  type="number"
+                  step="0.001"
+                  min="0.050"
+                  value="${escapeHtml(state.newDish.priceOmr)}"
+                  oninput="state.newDish.priceOmr = this.value"
+                  placeholder="${escapeHtml(t("dishPricePlaceholder"))}"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                />
+              </div>
+
+              <div class="space-y-1">
+                <label for="newDishDescEn" class="block text-xs font-bold text-slate-700">
+                  ${t("dishDescEnLabel")}
+                </label>
+                <input
+                  id="newDishDescEn"
+                  type="text"
+                  value="${escapeHtml(state.newDish.descEn)}"
+                  oninput="state.newDish.descEn = this.value"
+                  placeholder="${escapeHtml(t("dishDescEnPlaceholder"))}"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                />
+              </div>
+
+              <div class="space-y-1">
+                <label for="newDishDescAr" class="block text-xs font-bold text-slate-700">
+                  ${t("dishDescArLabel")}
+                </label>
+                <input
+                  id="newDishDescAr"
+                  type="text"
+                  value="${escapeHtml(state.newDish.descAr)}"
+                  oninput="state.newDish.descAr = this.value"
+                  placeholder="${escapeHtml(t("dishDescArPlaceholder"))}"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                />
+              </div>
+
+              <div class="space-y-1">
+                <label for="newDishPhotoFile" class="block text-xs font-bold text-slate-700">
+                  ${t("dishPhotoUploadLabel")}
+                </label>
+                <input
+                  id="newDishPhotoFile"
+                  type="file"
+                  accept="image/*"
+                  onchange="handleNewDishPhotoFile(event)"
+                  class="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-emerald-50 file:text-emerald-900 file:font-bold"
+                />
+              </div>
+
+              <div class="space-y-1">
+                <label for="newDishImageUrl" class="block text-xs font-bold text-slate-700">
+                  ${t("dishPhotoUrlLabel")}
+                </label>
+                <input
+                  id="newDishImageUrl"
+                  type="url"
+                  value="${escapeHtml(state.newDish.imageUrl)}"
+                  oninput="state.newDish.imageUrl = this.value"
+                  placeholder="${escapeHtml(t("dishPhotoUrlPlaceholder"))}"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                />
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <span class="block text-xs font-bold text-slate-700">${t("dishEmojiLabel")}</span>
+              <div class="flex flex-wrap gap-1.5">
+                ${EMOJI_CHOICES.map(
+                  (em) => `
+                    <button
+                      type="button"
+                      onclick="state.newDish.emoji = '${em}'; render();"
+                      class="w-9 h-9 rounded-xl border text-lg flex items-center justify-center transition ${
+                        state.newDish.emoji === em
+                          ? "bg-emerald-100 border-emerald-700"
+                          : "bg-stone-50 border-stone-200 hover:bg-amber-50"
+                      }"
+                    >
+                      ${em}
+                    </button>
+                  `
+                ).join("")}
+              </div>
+            </div>
+
+            ${
+              previewPhoto
+                ? `
+                  <div class="w-24 h-24 rounded-2xl overflow-hidden border border-stone-200">
+                    <img src="${escapeHtml(previewPhoto)}" alt="Preview" class="w-full h-full object-cover" />
+                  </div>
+                `
+                : ""
+            }
+
+            ${
+              state.newDish.error
+                ? `<p class="text-xs font-semibold text-rose-700">${escapeHtml(state.newDish.error)}</p>`
+                : ""
+            }
+
+            <button
+              type="submit"
+              class="px-5 py-3 rounded-2xl bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-sm transition"
+            >
+              ${t("addDishSubmitBtn")}
+            </button>
+          </form>
+        </section>
+      `;
+    }
+
+    function renderAdminPasswordModal() {
+      if (!state.isAdminModalOpen) return "";
+
+      return `
+        <div class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-stone-200 space-y-4">
+            <div class="space-y-1">
+              <h3 class="text-lg font-extrabold text-slate-900">
+                🔒 ${t("adminModalTitle")}
+              </h3>
+              <p class="text-xs sm:text-sm text-slate-600">
+                ${t("adminModalDesc")}
+              </p>
+            </div>
+
+            <form onsubmit="submitAdminLogin(event)" class="space-y-4">
+              <div class="space-y-1">
+                <label for="adminPasswordInput" class="block text-xs font-bold text-slate-700">
+                  ${t("adminPasswordLabel")}
+                </label>
+                <input
+                  id="adminPasswordInput"
+                  type="password"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  value="${escapeHtml(state.adminPasswordInput)}"
+                  oninput="state.adminPasswordInput = this.value"
+                  placeholder="${escapeHtml(t("adminPasswordPlaceholder"))}"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                />
+              </div>
+
+              ${
+                state.adminPasswordError
+                  ? `
+                    <p class="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-2.5">
+                      ${escapeHtml(state.adminPasswordError)}
+                    </p>
+                  `
+                  : ""
+              }
+
+              <div class="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onclick="closeAdminModal()"
+                  class="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-700 font-bold text-xs sm:text-sm transition"
+                >
+                  ${t("adminCancelBtn")}
+                </button>
+                <button
+                  type="submit"
+                  class="px-5 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-xs sm:text-sm transition"
+                >
+                  ${t("adminUnlockBtn")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    function render() {
+      applyDocumentDirection();
+      const filteredDishes = getFilteredMenuItems();
+      const appEl = document.getElementById("app");
+
+      appEl.innerHTML = `
+        ${renderEntryLanguageModal()}
+        ${renderHeader()}
+
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Left / Main Menu & Admin Column -->
+            <div class="lg:col-span-7 xl:col-span-8 space-y-5">
+              ${renderFilterAndSearchBar()}
+
+              ${
+                filteredDishes.length === 0
+                  ? `
+                    <div class="bg-white rounded-3xl border border-stone-200 p-10 text-center space-y-3">
+                      <div class="text-4xl">🍽️</div>
+                      <p class="text-sm font-bold text-slate-700">${t("noDishesFound")}</p>
+                      <button
+                        type="button"
+                        onclick="resetFilters()"
+                        class="px-4 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold transition"
+                      >
+                        ${t("resetFiltersBtn")}
+                      </button>
+                    </div>
+                  `
+                  : `
+                    <section class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      ${filteredDishes.map(renderFoodCard).join("")}
+                    </section>
+                  `
+              }
+
+              ${renderAdminControlsSection()}
+            </div>
+
+            <!-- Right Sticky Order & Checkout Column -->
+            <aside class="lg:col-span-5 xl:col-span-4">
+              ${renderCheckoutAndSummaryPanel()}
+            </aside>
+          </div>
+        </main>
+
+        ${renderAdminPasswordModal()}
+      `;
+    }
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
